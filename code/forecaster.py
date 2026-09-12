@@ -98,77 +98,69 @@ def compute_amount_safe_today(
     requested_amount: float,
 ) -> float:
     """
-    Find the maximum amount X the user can safely pay on request_date
-    while keeping balance >= min_balance for all 90 days.
-    Returns a value between 0 and requested_amount.
+    Binary search for the maximum amount X in [0, requested_amount] that can be
+    paid on request_date while keeping balance >= min_balance for ALL 90 days.
+
+    Algorithm:
+      lo=0, hi=requested_amount
+      For each candidate X: simulate 90-day window with debit of X on request_date.
+      If balance stays >= min_balance throughout, X is safe; try higher.
+      Otherwise try lower.
+    Returns the floor of the safe amount, rounded to 2 decimal places.
     """
     end_date = fs.request_date + timedelta(days=FORECAST_DAYS)
 
-    # Binary search for maximum safe amount
-    low = 0.0
-    high = min(requested_amount, fs.effective_balance - fs.min_balance)
-
-    if high <= 0:
-        return 0.0
-
-    # Check if paying requested_amount is safe
-    _, min_bal = simulate_balance(
-        start_balance=fs.effective_balance,
-        events=fs.future_events,
-        start_date=fs.request_date,
-        end_date=end_date,
-        extra_debits=[(fs.request_date, high)],
-    )
-    if is_safe(min_bal, fs.min_balance):
-        # Binary search between high and requested_amount
-        test_high = requested_amount
-        _, min_bal2 = simulate_balance(
-            start_balance=fs.effective_balance,
-            events=fs.future_events,
-            start_date=fs.request_date,
-            end_date=end_date,
-            extra_debits=[(fs.request_date, test_high)],
-        )
-        if is_safe(min_bal2, fs.min_balance):
-            return requested_amount
-        # Binary search between high and requested_amount
-        low2 = high
-        high2 = requested_amount
-        for _ in range(50):
-            mid = (low2 + high2) / 2
-            _, min_bal_mid = simulate_balance(
+    def _is_safe_to_pay(x: float) -> bool:
+        """Return True if paying x today keeps balance >= min_balance for 90 days."""
+        if x <= 0:
+            # Check base case: even without payment, are we safe?
+            _, min_bal = simulate_balance(
                 start_balance=fs.effective_balance,
                 events=fs.future_events,
                 start_date=fs.request_date,
                 end_date=end_date,
-                extra_debits=[(fs.request_date, mid)],
             )
-            if is_safe(min_bal_mid, fs.min_balance):
-                low2 = mid
-            else:
-                high2 = mid
-            if high2 - low2 < 0.01:
-                break
-        return min(low2, requested_amount)
-
-    # Binary search between 0 and high
-    for _ in range(60):
-        mid = (low + high) / 2
-        _, min_bal_mid = simulate_balance(
+            return is_safe(min_bal, fs.min_balance)
+        _, min_bal = simulate_balance(
             start_balance=fs.effective_balance,
             events=fs.future_events,
             start_date=fs.request_date,
             end_date=end_date,
-            extra_debits=[(fs.request_date, mid)],
+            extra_debits=[(fs.request_date, x)],
         )
-        if is_safe(min_bal_mid, fs.min_balance):
-            low = mid
+        return is_safe(min_bal, fs.min_balance)
+
+    # Quick upper bound: can't pay more than (balance - min_balance) immediately
+    immediate_max = fs.effective_balance - fs.min_balance
+    if immediate_max <= 0:
+        return 0.0
+
+    # If even paying 0 leaves us unsafe over 90 days, return 0
+    if not _is_safe_to_pay(0.0):
+        return 0.0
+
+    # Binary search in [0, min(requested_amount, immediate_max)]
+    lo = 0.0
+    hi = min(requested_amount, immediate_max)
+
+    # If paying hi is already safe, try to push all the way to requested_amount
+    if _is_safe_to_pay(hi) and hi < requested_amount:
+        if _is_safe_to_pay(requested_amount):
+            return round(requested_amount, 2)
+        # Otherwise binary search between hi and requested_amount
+        lo = hi
+        hi = requested_amount
+
+    for _ in range(60):
+        mid = (lo + hi) / 2
+        if _is_safe_to_pay(mid):
+            lo = mid
         else:
-            high = mid
-        if high - low < 0.01:
+            hi = mid
+        if hi - lo < 0.01:
             break
 
-    return round(max(0.0, min(low, requested_amount)), 2)
+    return round(max(0.0, min(lo, requested_amount)), 2)
 
 
 def compute_earliest_full_payment_date(

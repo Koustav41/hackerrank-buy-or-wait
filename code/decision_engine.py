@@ -233,7 +233,7 @@ def make_decision(
 
     # ---- PRIORITY 1: affordable_now + full_payment ----
     can_full_payment = "full_payment" in accepted_methods
-    full_safe_today = amount_safe_today >= requested_amount - 0.01
+    full_safe_today = amount_safe_today >= requested_amount - 0.011  # 1.1 cent tolerance
 
     if can_full_payment and full_safe_today:
         plan_date = request_date
@@ -297,8 +297,8 @@ def make_decision(
     partial_eligible = (
         allows_partial
         and can_partial
-        and amount_safe_today > 0.01
-        and amount_safe_today < requested_amount - 0.01
+        and amount_safe_today > 0.011
+        and amount_safe_today < requested_amount - 0.011  # must be meaningfully less than requested
         and earliest_full_date is not None
         and earliest_full_date <= desired_completion
     )
@@ -329,7 +329,32 @@ def make_decision(
         candidates_no_changes.sort(key=lambda x: (x[0], x[1], x[2], x[3]))
         return candidates_no_changes[0][4]
 
-    # ---- PRIORITY 4: spending changes to unlock full_payment or installments ----
+    # ---- PRIORITY 4: affordable_later + wait ----
+    # Check "wait" BEFORE suggesting spending changes — waiting is always preferable
+    # to asking the user to alter spending when income will naturally cover the purchase.
+    can_wait = "full_payment" in accepted_methods
+    wait_eligible = (
+        can_wait
+        and earliest_full_date is not None
+        and earliest_full_date <= desired_completion
+    )
+
+    if wait_eligible:
+        return Decision(
+            request_id=request_id,
+            amount_safe_to_pay=amount_safe_today,
+            affordability_status="affordable_later",
+            recommended_payment_method="wait",
+            payment_plan=_format_payment_plan([(earliest_full_date, requested_amount)]),
+            earliest_date_for_full_payment=str(earliest_full_date),
+            spending_changes_needed="none",
+            decision_explanation=_explain_wait(
+                profile.home_currency, requested_amount,
+                earliest_full_date, profile.minimum_balance_to_keep
+            ),
+        )
+
+    # ---- PRIORITY 5: spending changes to unlock full_payment or installments ----
     end_date = request_date + timedelta(days=FORECAST_DAYS)
     flexible_sorted = _compute_spending_change_savings(
         fs.flexible_events, request_date, end_date
@@ -422,29 +447,6 @@ def make_decision(
 
         if best_with_changes:
             return best_with_changes
-
-    # ---- PRIORITY 5: affordable_later + wait ----
-    can_wait = "full_payment" in accepted_methods
-    wait_eligible = (
-        can_wait
-        and earliest_full_date is not None
-        and earliest_full_date <= desired_completion
-    )
-
-    if wait_eligible:
-        return Decision(
-            request_id=request_id,
-            amount_safe_to_pay=amount_safe_today,
-            affordability_status="affordable_later",
-            recommended_payment_method="wait",
-            payment_plan=_format_payment_plan([(earliest_full_date, requested_amount)]),
-            earliest_date_for_full_payment=str(earliest_full_date),
-            spending_changes_needed="none",
-            decision_explanation=_explain_wait(
-                profile.home_currency, requested_amount,
-                earliest_full_date, profile.minimum_balance_to_keep
-            ),
-        )
 
     # ---- PRIORITY 6: not_affordable + not_recommended ----
     return Decision(

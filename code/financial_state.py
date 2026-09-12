@@ -159,12 +159,19 @@ def _detect_recurring_events(
 
     def _project_forward(rep_event, last_date, freq_type, rep_amount,
                          flexibility, min_allowed, category, direction):
+        """
+        Project recurring events forward from last_date.
+        For biweekly: step by exactly 14 days each time.
+        For monthly: use calendar-aware month arithmetic to avoid date drift.
+        For weekly: step by 7 days.
+        """
         events_out = []
         step = 1
         while True:
             if freq_type == "monthly":
                 next_date = _add_months(last_date, step)
             elif freq_type == "biweekly":
+                # Use step * 14 from last settled anchor to stay aligned
                 next_date = last_date + timedelta(days=14 * step)
             elif freq_type == "weekly":
                 next_date = last_date + timedelta(days=7 * step)
