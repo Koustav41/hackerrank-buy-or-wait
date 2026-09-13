@@ -92,6 +92,8 @@ def _detect_recurring_events(
             return False
         if e.event_type in ("refund", "investment_sale", "investment_purchase", "investment_valuation"):
             return False
+        if e.direction == "credit" and any(w in (e.description or "").lower() for w in ["commission", "bonus", "lottery", "refund"]):
+            return False
         if e.status in ("cancelled", "failed", "unrealized"):
             return False
         return True
@@ -170,6 +172,8 @@ def _detect_recurring_events(
         while True:
             if freq_type == "monthly":
                 next_date = _add_months(last_date, step)
+            elif freq_type == "triweekly":
+                next_date = last_date + timedelta(days=21 * step)
             elif freq_type == "biweekly":
                 # Use step * 14 from last settled anchor to stay aligned
                 next_date = last_date + timedelta(days=14 * step)
@@ -278,9 +282,10 @@ def _detect_recurring_events(
         # Is this a recognized recurring pattern?
         is_weekly = 5 <= avg_interval <= 9
         is_biweekly = 10 <= avg_interval <= 18
+        is_triweekly = 19 <= avg_interval <= 24
         is_monthly = 25 <= avg_interval <= 35
 
-        if not (is_weekly or is_biweekly or is_monthly):
+        if not (is_weekly or is_biweekly or is_triweekly or is_monthly):
             continue
 
         # Check consistency (stddev < 45% of mean) when multiple intervals
@@ -293,11 +298,18 @@ def _detect_recurring_events(
         # Check recency: the last event in history must be active (not dormant/ended months ago)
         last_anchor = all_for_interval[-1]
         days_since_last = (as_of_date - last_anchor.settlement_date).days
-        max_dormancy = 16 if is_weekly else (28 if is_biweekly else 45)
+        max_dormancy = 16 if is_weekly else (28 if is_biweekly else (35 if is_triweekly else 45))
         if days_since_last > max_dormancy and not future_anchor:
             continue
 
-        freq_type = "weekly" if is_weekly else ("biweekly" if is_biweekly else "monthly")
+        if is_weekly:
+            freq_type = "weekly"
+        elif is_biweekly:
+            freq_type = "biweekly"
+        elif is_triweekly:
+            freq_type = "triweekly"
+        else:
+            freq_type = "monthly"
 
         # Representative amount
         if direction == "credit" and etype == "income":

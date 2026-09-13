@@ -62,10 +62,7 @@ def simulate_balance(
                 # Apply spending change if any
                 if pe.event_id in spending_changes:
                     new_amount = spending_changes[pe.event_id]
-                    if new_amount < 0:
-                        amount = 0.0  # stopped
-                    else:
-                        amount = new_amount
+                    amount = 0.0 if new_amount < 0 else new_amount
 
                 if pe.direction == "credit":
                     balance += amount

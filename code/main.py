@@ -38,7 +38,9 @@ logger = logging.getLogger("main")
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATASET_DIR = os.path.join(REPO_ROOT, "dataset")
-OUTPUT_CSV = os.path.join(DATASET_DIR, "output.csv")
+ROOT_OUTPUT_CSV = os.path.join(REPO_ROOT, "output.csv")
+DATASET_OUTPUT_CSV = os.path.join(DATASET_DIR, "output.csv")
+OUTPUT_CSV = ROOT_OUTPUT_CSV
 USAGE_REPORT = os.path.join(REPO_ROOT, "code", "evaluation", "usage_report.md")
 
 OUTPUT_COLUMNS = [
@@ -330,7 +332,8 @@ def main():
         )
 
     # ---- Write output ----
-    write_output(decisions, OUTPUT_CSV)
+    write_output(decisions, ROOT_OUTPUT_CSV)
+    write_output(decisions, DATASET_OUTPUT_CSV)
 
     # ---- Write usage report ----
     elapsed = time.time() - start_time

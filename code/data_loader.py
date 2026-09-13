@@ -4,10 +4,10 @@ Load and parse all dataset CSVs for the Buy or Wait? challenge.
 """
 
 import os
-import pandas as pd
+import csv
 from datetime import date, datetime
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 
 DATASET_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "dataset")
@@ -148,10 +148,13 @@ def load_all() -> AllData:
             raise FileNotFoundError(f"Required dataset file not found: {path}")
         return path
 
+    def _read_csv(name):
+        with open(_file(name), "r", encoding="utf-8") as f:
+            return list(csv.DictReader(f))
+
     # ---- requests.csv ----
-    req_df = pd.read_csv(_file("requests.csv"), keep_default_na=False, dtype=str)
     requests = []
-    for _, row in req_df.iterrows():
+    for row in _read_csv("requests.csv"):
         requests.append(Request(
             request_id=row["request_id"].strip(),
             user_id=row["user_id"].strip(),
@@ -164,10 +167,9 @@ def load_all() -> AllData:
         ))
 
     # ---- sample_requests.csv ----
-    sr_df = pd.read_csv(_file("sample_requests.csv"), keep_default_na=False, dtype=str)
     sample_requests = []
     sample_outputs = {}
-    for _, row in sr_df.iterrows():
+    for row in _read_csv("sample_requests.csv"):
         rid = row["request_id"].strip()
         sample_requests.append(Request(
             request_id=rid,
@@ -190,9 +192,8 @@ def load_all() -> AllData:
         }
 
     # ---- financial_profiles.csv ----
-    fp_df = pd.read_csv(_file("financial_profiles.csv"), keep_default_na=False, dtype=str)
     profiles = {}
-    for _, row in fp_df.iterrows():
+    for row in _read_csv("financial_profiles.csv"):
         uid = row["user_id"].strip()
         max_inst = _parse_optional_float(row.get("max_installment_months", ""))
         profiles[uid] = FinancialProfile(
@@ -209,10 +210,9 @@ def load_all() -> AllData:
         )
 
     # ---- financial_events.csv ----
-    fe_df = pd.read_csv(_file("financial_events.csv"), keep_default_na=False, dtype=str)
     events = []
-    for _, row in fe_df.iterrows():
-        amt_str = str(row["amount"]).strip()
+    for row in _read_csv("financial_events.csv"):
+        amt_str = str(row.get("amount", "")).strip()
         amt = None if amt_str == "" else float(amt_str)
         min_allowed_str = str(row.get("minimum_allowed_amount", "")).strip()
         min_allowed = None if min_allowed_str == "" else _parse_optional_float(min_allowed_str)
@@ -234,9 +234,8 @@ def load_all() -> AllData:
         ))
 
     # ---- exchange_rates.csv ----
-    er_df = pd.read_csv(_file("exchange_rates.csv"), keep_default_na=False, dtype=str)
     exchange_rates = []
-    for _, row in er_df.iterrows():
+    for row in _read_csv("exchange_rates.csv"):
         exchange_rates.append(ExchangeRate(
             rate_date=_parse_date(row["rate_date"]),
             from_currency=row["from_currency"].strip(),
@@ -245,9 +244,8 @@ def load_all() -> AllData:
         ))
 
     # ---- request_payment_options.csv ----
-    po_df = pd.read_csv(_file("request_payment_options.csv"), keep_default_na=False, dtype=str)
     payment_options = []
-    for _, row in po_df.iterrows():
+    for row in _read_csv("request_payment_options.csv"):
         freq_str = str(row.get("payment_frequency_days", "")).strip()
         freq = None if freq_str == "" else int(float(freq_str))
         payment_options.append(PaymentOption(
@@ -263,9 +261,8 @@ def load_all() -> AllData:
         ))
 
     # ---- messages.csv ----
-    msg_df = pd.read_csv(_file("messages.csv"), keep_default_na=False, dtype=str)
     messages = []
-    for _, row in msg_df.iterrows():
+    for row in _read_csv("messages.csv"):
         messages.append(Message(
             message_id=row["message_id"].strip(),
             user_id=row["user_id"].strip(),
@@ -277,9 +274,8 @@ def load_all() -> AllData:
         ))
 
     # ---- images.csv ----
-    img_df = pd.read_csv(_file("images.csv"), keep_default_na=False, dtype=str)
     images = []
-    for _, row in img_df.iterrows():
+    for row in _read_csv("images.csv"):
         images.append(ImageRecord(
             image_id=row["image_id"].strip(),
             user_id=row["user_id"].strip(),

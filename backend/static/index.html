@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buy or Wait? — AI Financial Decision Agent</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    code, .font-mono { font-family: 'JetBrains Mono', monospace; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 md:p-8 space-y-6">
+
+  <!-- Header -->
+  <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/30 text-white font-bold text-xl">
+        ⚡
+      </div>
+      <div>
+        <h1 class="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-2">
+          Buy or Wait? <span class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-950 text-indigo-400 border border-indigo-700/50 font-semibold">AI Decision Agent</span>
+        </h1>
+        <p class="text-xs text-slate-400 mt-0.5">
+          Autonomous 90-Day Cash Flow Simulation & Solvency Advisory Engine
+        </p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2.5 text-xs text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-3.5 py-1.5 rounded-lg shadow-sm">
+      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      <span class="font-medium tracking-wide">System Online • 250 Requests Analyzed</span>
+    </div>
+  </header>
+
+  <!-- Top Metrics Bar -->
+  <div id="stats-grid" class="grid grid-cols-2 md:grid-cols-5 gap-3">
+    <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
+      <div class="text-xs text-slate-400 uppercase font-semibold">Total Requests</div>
+      <div id="stat-total" class="text-2xl font-bold text-white mt-1">...</div>
+      <div class="text-xs text-slate-500 mt-1">Processed Evaluation Set</div>
+    </div>
+    <div class="bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-4">
+      <div class="text-xs text-emerald-400 uppercase font-semibold">Affordable Now</div>
+      <div id="stat-now" class="text-2xl font-bold text-emerald-300 mt-1">...</div>
+      <div class="text-xs text-emerald-500/80 mt-1">Immediate full pay</div>
+    </div>
+    <div class="bg-blue-950/30 border border-blue-800/40 rounded-xl p-4">
+      <div class="text-xs text-blue-400 uppercase font-semibold">With Plan</div>
+      <div id="stat-plan" class="text-2xl font-bold text-blue-300 mt-1">...</div>
+      <div class="text-xs text-blue-500/80 mt-1">Installment / Partial</div>
+    </div>
+    <div class="bg-amber-950/30 border border-amber-800/40 rounded-xl p-4">
+      <div class="text-xs text-amber-400 uppercase font-semibold">Affordable Later</div>
+      <div id="stat-later" class="text-2xl font-bold text-amber-300 mt-1">...</div>
+      <div class="text-xs text-amber-500/80 mt-1">Deferred safe date</div>
+    </div>
+    <div class="bg-rose-950/30 border border-rose-800/40 rounded-xl p-4">
+      <div class="text-xs text-rose-400 uppercase font-semibold">Not Affordable</div>
+      <div id="stat-not" class="text-2xl font-bold text-rose-300 mt-1">...</div>
+      <div class="text-xs text-rose-500/80 mt-1">Breaches reserve buffer</div>
+    </div>
+  </div>
+
+  <!-- Filters & Search -->
+  <div class="flex flex-col md:flex-row gap-3 items-center justify-between bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+    <div class="relative w-full md:w-80">
+      <input id="search-input" type="text" placeholder="Search request, user, purpose..." class="w-full bg-slate-950 border border-slate-700/80 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-indigo-500">
+    </div>
+    <div id="filter-buttons" class="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+      <button onclick="setFilter('all')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white" data-status="all">All</button>
+      <button onclick="setFilter('affordable_now')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 hover:bg-slate-700" data-status="affordable_now">Affordable Now</button>
+      <button onclick="setFilter('affordable_with_plan')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 hover:bg-slate-700" data-status="affordable_with_plan">With Plan</button>
+      <button onclick="setFilter('affordable_later')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 hover:bg-slate-700" data-status="affordable_later">Affordable Later</button>
+      <button onclick="setFilter('not_affordable')" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 hover:bg-slate-700" data-status="not_affordable">Not Affordable</button>
+    </div>
+  </div>
+
+  <!-- Requests Table -->
+  <div class="bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
+    <div class="max-h-[340px] overflow-y-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead class="sticky top-0 bg-slate-950/95 border-b border-slate-800 text-xs uppercase text-slate-400">
+          <tr>
+            <th class="p-3">Request ID</th>
+            <th class="p-3">Date</th>
+            <th class="p-3">User</th>
+            <th class="p-3">Purpose & Request</th>
+            <th class="p-3 text-right">Requested</th>
+            <th class="p-3 text-right">Safe Today</th>
+            <th class="p-3 text-center">Status</th>
+          </tr>
+        </thead>
+        <tbody id="requests-tbody" class="divide-y divide-slate-800/50 font-mono text-xs">
+          <tr><td colspan="7" class="text-center py-6 text-slate-400">Loading requests...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Lower Split: Decision & Timeline (Left) + Ask Agent Chat (Right) -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Decision Details & Timeline -->
+    <div class="lg:col-span-2 space-y-6">
+      <!-- Decision Card -->
+      <div id="decision-card" class="bg-slate-900/90 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-5">
+        <div class="text-center text-slate-400 py-8">Select a request to inspect AI decision and timeline</div>
+      </div>
+
+      <!-- Timeline Chart -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-indigo-400">📈</span>
+            <h3 class="text-base font-bold text-white">90-Day Projected Cash Flow Trajectory</h3>
+          </div>
+          <div class="flex items-center gap-3 text-xs font-mono">
+            <span class="text-indigo-400">● Projected Balance</span>
+            <span class="text-rose-400">--- Min Reserve Buffer</span>
+          </div>
+        </div>
+        <div class="h-64 relative">
+          <canvas id="timeline-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ask Agent AI Chat -->
+    <div class="lg:col-span-1">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-6 shadow-2xl flex flex-col h-[650px]">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🤖</span>
+            <h3 class="text-base font-bold text-white">Ask Financial Advisor</h3>
+          </div>
+          <span class="text-xs bg-indigo-950 text-indigo-400 border border-indigo-800/40 px-2 py-0.5 rounded-full">Grounded AI</span>
+        </div>
+
+        <div id="chat-messages" class="flex-1 overflow-y-auto py-4 space-y-3 pr-1 text-sm">
+          <div class="flex items-start gap-2">
+            <div class="w-7 h-7 rounded-full bg-slate-800 text-indigo-400 border border-slate-700 flex items-center justify-center flex-shrink-0 text-xs">🤖</div>
+            <div class="p-3 rounded-2xl bg-slate-950 text-slate-200 border border-slate-800 text-xs leading-relaxed">
+              Hello! I am your Buy or Wait AI Financial Advisor. Ask me anything about the selected request, why a decision was reached, or how safe amounts were calculated.
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-1.5 overflow-x-auto py-2 text-xs">
+          <button onclick="sendPresetChat('Why was this decision made?')" class="whitespace-nowrap px-2.5 py-1 rounded-full bg-slate-950 text-slate-300 border border-slate-800 hover:border-indigo-500">Why was this decided?</button>
+          <button onclick="sendPresetChat('Can I afford this today?')" class="whitespace-nowrap px-2.5 py-1 rounded-full bg-slate-950 text-slate-300 border border-slate-800 hover:border-indigo-500">Safe today?</button>
+          <button onclick="sendPresetChat('What is the recommended payment schedule?')" class="whitespace-nowrap px-2.5 py-1 rounded-full bg-slate-950 text-slate-300 border border-slate-800 hover:border-indigo-500">Payment plan?</button>
+        </div>
+
+        <div class="pt-2 border-t border-slate-800 flex gap-2">
+          <input id="chat-input" type="text" placeholder="Ask a question..." onkeydown="if(event.key==='Enter') sendChat()" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+          <button onclick="sendChat()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-medium text-sm transition-all">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allRequests = [];
+    let currentFilter = 'all';
+    let selectedId = null;
+    let chartInstance = null;
+
+    async function init() {
+      await loadStats();
+      await loadRequests();
+      document.getElementById('search-input').addEventListener('input', renderRequests);
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/stats');
+        const d = await res.json();
+        document.getElementById('stat-total').innerText = d.total_requests;
+        document.getElementById('stat-now').innerText = d.affordable_now;
+        document.getElementById('stat-plan').innerText = d.affordable_with_plan;
+        document.getElementById('stat-later').innerText = d.affordable_later;
+        document.getElementById('stat-not').innerText = d.not_affordable;
+      } catch(e) { console.error(e); }
+    }
+
+    async function loadRequests() {
+      try {
+        const res = await fetch('/api/requests?limit=250');
+        allRequests = await res.json();
+        renderRequests();
+        if (allRequests.length > 0) {
+          selectRequest(allRequests[0].request_id);
+        }
+      } catch(e) { console.error(e); }
+    }
+
+    function setFilter(status) {
+      currentFilter = status;
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        if (btn.dataset.status === status) {
+          btn.className = 'filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white';
+        } else {
+          btn.className = 'filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 hover:bg-slate-700';
+        }
+      });
+      renderRequests();
+    }
+
+    function renderRequests() {
+      const q = document.getElementById('search-input').value.toLowerCase();
+      const filtered = allRequests.filter(r => {
+        const matchesStatus = currentFilter === 'all' || r.affordability_status === currentFilter;
+        const matchesSearch = r.request_id.toLowerCase().includes(q) ||
+                              (r.purpose && r.purpose.toLowerCase().includes(q)) ||
+                              r.user_id.toLowerCase().includes(q);
+        return matchesStatus && matchesSearch;
+      });
+
+      const tbody = document.getElementById('requests-tbody');
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-slate-400">No requests match criteria.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(r => {
+        const isSelected = r.request_id === selectedId;
+        const statusBadge = getBadge(r.affordability_status);
+        return `
+          <tr onclick="selectRequest('${r.request_id}')" class="cursor-pointer transition-colors ${isSelected ? 'bg-indigo-950/40 border-l-4 border-indigo-500 text-white' : 'hover:bg-slate-800/40 text-slate-300'}">
+            <td class="p-3 font-semibold text-indigo-300">${r.request_id}</td>
+            <td class="p-3 text-slate-400">${r.request_date}</td>
+            <td class="p-3 text-slate-400">${r.user_id}</td>
+            <td class="p-3 font-sans max-w-xs truncate" title="${r.purpose || ''}">${r.purpose || ''}</td>
+            <td class="p-3 text-right font-medium">${r.currency} ${Number(r.requested_amount).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+            <td class="p-3 text-right font-semibold text-emerald-400">${r.currency} ${Number(r.amount_safe_to_pay).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+            <td class="p-3 text-center">${statusBadge}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function getBadge(status) {
+      if (status === 'affordable_now') return '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-950/60 text-emerald-400 border border-emerald-500/30">Affordable Now</span>';
+      if (status === 'affordable_with_plan') return '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-950/60 text-blue-400 border border-blue-500/30">With Plan</span>';
+      if (status === 'affordable_later') return '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-950/60 text-amber-400 border border-amber-500/30">Affordable Later</span>';
+      return '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-950/60 text-rose-400 border border-rose-500/30">Not Affordable</span>';
+    }
+
+    async function selectRequest(id) {
+      selectedId = id;
+      renderRequests();
+      loadDecisionDetail(id);
+      loadTimeline(id);
+    }
+
+    async function loadDecisionDetail(id) {
+      try {
+        const res = await fetch(`/api/requests/${id}`);
+        const d = await res.json();
+        
+        let planHtml = '<p class="text-xs text-slate-500 mt-2">No staged installment or partial schedule required.</p>';
+        if (d.payment_plan && d.payment_plan.toLowerCase() !== 'none') {
+          const parts = d.payment_plan.split('|');
+          planHtml = '<div class="mt-2 space-y-1.5">' + parts.map((p, idx) => {
+            const [date, amt] = p.split(':');
+            return `<div class="flex justify-between bg-slate-900 px-3 py-1.5 rounded text-xs border border-slate-800">
+              <span class="text-slate-300 font-mono">Milestone ${idx+1} (${date?.trim()})</span>
+              <span class="font-semibold text-emerald-400 font-mono">${d.currency} ${Number(amt).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+            </div>`;
+          }).join('') + '</div>';
+        }
+
+        let changesHtml = '<p class="text-xs text-slate-500 mt-2">No spending changes or cancellations needed.</p>';
+        if (d.spending_changes_needed && d.spending_changes_needed.toLowerCase() !== 'none') {
+          changesHtml = '<div class="mt-2 space-y-1">' + d.spending_changes_needed.split(';').map(c => `
+            <div class="text-xs bg-amber-950/30 text-amber-300 border border-amber-800/40 px-3 py-1.5 rounded font-mono">${c.trim()}</div>
+          `).join('') + '</div>';
+        }
+
+        document.getElementById('decision-card').innerHTML = `
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-800">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xl font-bold text-white font-mono">${d.request_id}</span>
+                <span class="px-2.5 py-0.5 rounded text-xs font-semibold uppercase bg-slate-800 text-slate-300">${d.request_type}</span>
+              </div>
+              <p class="text-sm text-slate-400 mt-1 max-w-2xl">${d.request_text}</p>
+            </div>
+            <div class="text-right">
+              <div class="text-xs uppercase text-slate-400 font-medium">Requested Amount</div>
+              <div class="text-2xl font-bold text-white font-mono">${d.currency} ${Number(d.requested_amount).toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+              <div class="text-xs text-slate-400 mt-0.5">Date: ${d.request_date}</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-gradient-to-br from-emerald-950/60 to-slate-900 border border-emerald-500/40 rounded-xl p-4">
+              <div class="text-xs uppercase font-semibold text-emerald-400">Amount Safe Today</div>
+              <div class="text-2xl font-extrabold text-white font-mono mt-1">${d.currency} ${Number(d.amount_safe_to_pay).toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+              <div class="text-xs text-emerald-300/80 mt-1.5">${d.amount_safe_to_pay >= d.requested_amount ? '100% safe to commit immediately' : (d.amount_safe_to_pay > 0 ? 'Partial safe on request date' : 'Unsafe today — reserve buffer required')}</div>
+            </div>
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+              <div>
+                <div class="text-xs uppercase font-semibold text-slate-400">Status</div>
+                <div class="text-base font-bold text-indigo-300 capitalize mt-0.5">${d.affordability_status.replace(/_/g, ' ')}</div>
+              </div>
+              <div class="pt-2 border-t border-slate-800">
+                <div class="text-xs uppercase font-semibold text-slate-400">Recommended Method</div>
+                <div class="text-sm font-semibold text-emerald-300 capitalize">${d.recommended_payment_method.replace(/_/g, ' ')}</div>
+              </div>
+            </div>
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+              <div class="text-xs uppercase font-semibold text-slate-400">Current Balance</div>
+              <div class="text-xl font-bold text-white font-mono">${d.currency} ${Number(d.current_balance).toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+              <div class="text-xs text-slate-400 pt-2 border-t border-slate-800">
+                Min Reserve: <span class="text-rose-400 font-semibold font-mono">${d.currency} ${Number(d.minimum_balance_to_keep).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4">
+            <div class="text-xs uppercase text-indigo-400 font-semibold tracking-wider">AI Grounded Rationale</div>
+            <p class="text-sm text-slate-200 mt-1.5 leading-relaxed">${d.decision_explanation}</p>
+            ${d.earliest_date_for_full_payment ? `<div class="mt-2 text-xs text-amber-300 font-mono">Earliest Safe Full Payment Date: <b>${d.earliest_date_for_full_payment}</b></div>` : ''}
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
+              <div class="text-xs uppercase font-semibold text-slate-400">Payment Plan</div>
+              ${planHtml}
+            </div>
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4">
+              <div class="text-xs uppercase font-semibold text-slate-400">Budget Adjustments</div>
+              ${changesHtml}
+            </div>
+          </div>
+        `;
+      } catch(e) { console.error(e); }
+    }
+
+    async function loadTimeline(id) {
+      try {
+        const res = await fetch(`/api/timeline/${id}`);
+        const points = await res.json();
+        
+        const labels = points.map(p => p.date.slice(5));
+        const balances = points.map(p => p.balance);
+        const minVal = points.length > 0 ? points[0].min_balance : 0;
+        const minLine = points.map(() => minVal);
+
+        const ctx = document.getElementById('timeline-chart').getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+
+        chartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Balance Trajectory',
+                data: balances,
+                borderColor: '#818cf8',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                fill: true,
+                tension: 0.2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                borderWidth: 2.5
+              },
+              {
+                label: 'Min Balance Reserve',
+                data: minLine,
+                borderColor: '#f43f5e',
+                borderDash: [5, 5],
+                borderWidth: 1.5,
+                fill: false,
+                pointRadius: 0
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#020617',
+                borderColor: '#334155',
+                borderWidth: 1,
+                callbacks: {
+                  label: function(c) {
+                    return c.dataset.label + ': ' + Number(c.parsed.y).toLocaleString();
+                  }
+                }
+              }
+            },
+            scales: {
+              x: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', maxTicksLimit: 8 } },
+              y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v } }
+            }
+          }
+        });
+      } catch(e) { console.error(e); }
+    }
+
+    function sendPresetChat(q) {
+      document.getElementById('chat-input').value = q;
+      sendChat();
+    }
+
+    async function sendChat() {
+      const input = document.getElementById('chat-input');
+      const q = input.value.trim();
+      if (!q) return;
+      input.value = '';
+
+      const container = document.getElementById('chat-messages');
+      container.innerHTML += `
+        <div class="flex items-start gap-2 justify-end">
+          <div class="p-3 rounded-2xl bg-indigo-600 text-white text-xs leading-relaxed max-w-[80%]">${q}</div>
+          <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center flex-shrink-0 text-xs">👤</div>
+        </div>
+      `;
+      container.scrollTop = container.scrollHeight;
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ request_id: selectedId, question: q })
+        });
+        const d = await res.json();
+        container.innerHTML += `
+          <div class="flex items-start gap-2">
+            <div class="w-7 h-7 rounded-full bg-slate-800 text-indigo-400 border border-slate-700 flex items-center justify-center flex-shrink-0 text-xs">🤖</div>
+            <div class="p-3 rounded-2xl bg-slate-950 text-slate-200 border border-slate-800 text-xs leading-relaxed whitespace-pre-wrap max-w-[85%]">${d.answer}</div>
+          </div>
+        `;
+      } catch(e) {
+        container.innerHTML += `
+          <div class="flex items-start gap-2">
+            <div class="w-7 h-7 rounded-full bg-slate-800 text-rose-400 border border-slate-700 flex items-center justify-center flex-shrink-0 text-xs">⚠️</div>
+            <div class="p-3 rounded-2xl bg-rose-950/40 text-rose-300 border border-rose-800 text-xs">Failed to reach AI advisor backend.</div>
+          </div>
+        `;
+      }
+      container.scrollTop = container.scrollHeight;
+    }
+
+    init();
+  </script>
+</body>
+</html>
