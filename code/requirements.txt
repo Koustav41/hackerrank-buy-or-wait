@@ -1,0 +1,7 @@
+# Core dependency — used for CSV parsing in data_loader.py
+pandas>=2.0.0
+
+# Optional — only needed for live image extraction (image_extractor.py)
+# and live message parsing (message_parser.py).
+# The system runs fully without this if code/image_cache.json is present.
+# anthropic>=0.25.0
